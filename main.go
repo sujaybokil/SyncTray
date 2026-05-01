@@ -152,7 +152,7 @@ func stopSyncthing() {
 }
 
 func openBrowser(url string) {
-	exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	exec.Command("cmd", "/c", "start", url).Start()
 }
 
 // makeIcon generates a simple teal square PNG icon at runtime.

@@ -8,7 +8,8 @@
 [Setup]
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppPublisher=synctray
+AppPublisher=sujaybokil
+AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
 VersionInfoVersion={#AppVersion}
 
 ; Install to %LOCALAPPDATA%\SyncTray — no admin rights needed
@@ -20,14 +21,14 @@ PrivilegesRequired=lowest
 OutputDir=Output
 OutputBaseFilename=synctray-setup
 SetupIconFile=icon.ico
-UninstallDisplayIcon={app}\{#AppExe}
+UninstallDisplayIcon={app}\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 
 [Files]
-Source: "{#AppExe}";  DestDir: "{app}"; Flags: ignoreversion
-Source: "icon.ico";   DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "icon.ico";  DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Run]
 ; Kill any running instance before finishing (in case of upgrade)
@@ -58,7 +59,6 @@ function IsAppRunning(): Boolean;
 var
   ResultCode: Integer;
 begin
-  // Returns true if synctray.exe is in the process list
   Exec('tasklist.exe', '/fi "IMAGENAME eq {#AppExe}" /fo csv /nh',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Result := (ResultCode = 0);

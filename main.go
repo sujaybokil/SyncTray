@@ -9,15 +9,19 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/getlantern/systray"
 )
 
+const defaultWebUI = "http://127.0.0.1:8384"
+
 var (
 	syncthingCmd *exec.Cmd
 	logFile      *os.File
+	webUIURL     string
 )
 
 func main() {
@@ -31,7 +35,28 @@ func main() {
 		defer logFile.Close()
 	}
 
+	loadConfig(exeDir)
 	systray.Run(onReady, onExit)
+}
+
+// loadConfig reads synctray.conf next to the exe for optional settings.
+// Currently supports one line: webui=http://127.0.0.1:8384
+func loadConfig(exeDir string) {
+	webUIURL = defaultWebUI
+	data, err := os.ReadFile(filepath.Join(exeDir, "synctray.conf"))
+	if err != nil {
+		return
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "webui=") {
+			val := strings.TrimPrefix(line, "webui=")
+			if val != "" {
+				webUIURL = val
+				log.Printf("Web UI URL loaded from config: %s", webUIURL)
+			}
+		}
+	}
 }
 
 func loadIcon() []byte {
@@ -80,7 +105,7 @@ func onReady() {
 	for {
 		select {
 		case <-mOpenUI.ClickedCh:
-			openBrowser("http://127.0.0.1:8384")
+			openBrowser(webUIURL)
 		case <-mRestart.ClickedCh:
 			mStatus.SetTitle("● Restarting...")
 			stopSyncthing()

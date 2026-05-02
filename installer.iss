@@ -38,7 +38,7 @@ Filename: "taskkill.exe"; Parameters: "/f /im {#AppExe}"; \
 ; Register the logon task
 Filename: "schtasks.exe"; \
   Parameters: "/create /tn ""{#TaskName}"" /tr """"""{app}\{#AppExe}"""" /sc ONLOGON /delay 0000:30 /it /f"; \
-  Flags: runhidden
+  Flags: runhidden shellexec waituntilterminated
 
 ; Offer to launch now
 Filename: "{app}\{#AppExe}"; \

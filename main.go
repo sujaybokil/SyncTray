@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -10,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -18,18 +20,29 @@ import (
 
 const defaultWebUI = "http://127.0.0.1:8384"
 
+var errApplicationExiting = errors.New("application is exiting")
+
 var (
-	syncthingCmd *exec.Cmd
-	logFile      *os.File
-	webUIURL     string
+	syncthingMu         sync.Mutex
+	syncthingCmd        *exec.Cmd
+	syncthingGeneration uint64
+	applicationExiting  bool
+	logFile             *os.File
+	webUIURL            string
 )
 
 func main() {
 	// Set up log file next to the exe
-	exePath, _ := os.Executable()
-	exeDir := filepath.Dir(exePath)
+	exeDir, err := executableDir()
+	if err != nil {
+		log.Printf("Could not determine executable directory: %v", err)
+		return
+	}
 	logPath := filepath.Join(exeDir, "synctray.log")
-	logFile, _ = os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	logFile, err = os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("Could not open log file %s: %v", logPath, err)
+	}
 	if logFile != nil {
 		log.SetOutput(logFile)
 		defer logFile.Close()
@@ -39,29 +52,52 @@ func main() {
 	systray.Run(onReady, onExit)
 }
 
+func executableDir() (string, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(exePath), nil
+}
+
 // loadConfig reads synctray.conf next to the exe for optional settings.
 // Currently supports one line: webui=http://127.0.0.1:8384
 func loadConfig(exeDir string) {
-	webUIURL = defaultWebUI
 	data, err := os.ReadFile(filepath.Join(exeDir, "synctray.conf"))
 	if err != nil {
+		webUIURL = defaultWebUI
+		if !errors.Is(err, os.ErrNotExist) {
+			log.Printf("Could not read synctray.conf: %v", err)
+		}
 		return
 	}
-	for _, line := range strings.Split(string(data), "\n") {
+	webUIURL = parseWebUIConfig(string(data))
+	if webUIURL != defaultWebUI {
+		log.Printf("Web UI URL loaded from config: %s", webUIURL)
+	}
+}
+
+func parseWebUIConfig(data string) string {
+	webUIURL := defaultWebUI
+	for _, line := range strings.Split(data, "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "webui=") {
 			val := strings.TrimPrefix(line, "webui=")
 			if val != "" {
 				webUIURL = val
-				log.Printf("Web UI URL loaded from config: %s", webUIURL)
 			}
 		}
 	}
+	return webUIURL
 }
 
 func loadIcon() []byte {
-	exePath, _ := os.Executable()
-	iconPath := filepath.Join(filepath.Dir(exePath), "icon.ico")
+	exeDir, err := executableDir()
+	if err != nil {
+		log.Printf("Could not determine icon directory: %v", err)
+		return makeIcon()
+	}
+	iconPath := filepath.Join(exeDir, "icon.ico")
 	data, err := os.ReadFile(iconPath)
 	if err != nil {
 		log.Printf("Could not load icon.ico: %v", err)
@@ -82,25 +118,7 @@ func onReady() {
 	mRestart := systray.AddMenuItem("Restart Syncthing", "Kill and restart Syncthing")
 	mQuit := systray.AddMenuItem("Quit", "Stop Syncthing and exit")
 
-	go func() {
-		err := startSyncthing()
-		if err != nil {
-			log.Printf("Failed to start syncthing: %v", err)
-			mStatus.SetTitle("✖ Failed to start")
-			return
-		}
-		// Give syncthing a moment to start up
-		time.Sleep(2 * time.Second)
-		mStatus.SetTitle("● Running")
-
-		// Watch the process
-		go func() {
-			if syncthingCmd != nil {
-				syncthingCmd.Wait()
-				mStatus.SetTitle("✖ Stopped")
-			}
-		}()
-	}()
+	go startAndWatchSyncthing(mStatus)
 
 	for {
 		select {
@@ -110,13 +128,7 @@ func onReady() {
 			mStatus.SetTitle("● Restarting...")
 			stopSyncthing()
 			time.Sleep(1 * time.Second)
-			err := startSyncthing()
-			if err != nil {
-				mStatus.SetTitle("✖ Failed to start")
-			} else {
-				time.Sleep(2 * time.Second)
-				mStatus.SetTitle("● Running")
-			}
+			startAndWatchSyncthing(mStatus)
 		case <-mQuit.ClickedCh:
 			systray.Quit()
 			return
@@ -125,13 +137,37 @@ func onReady() {
 }
 
 func onExit() {
+	syncthingMu.Lock()
+	applicationExiting = true
+	syncthingMu.Unlock()
 	stopSyncthing()
 }
 
-func startSyncthing() error {
+func startAndWatchSyncthing(mStatus *systray.MenuItem) {
+	cmd, generation, err := startSyncthing()
+	if err != nil {
+		if !errors.Is(err, errApplicationExiting) {
+			log.Printf("Failed to start syncthing: %v", err)
+			mStatus.SetTitle("✖ Failed to start")
+		}
+		return
+	}
+
+	go watchSyncthing(cmd, generation, mStatus)
+
+	// Give syncthing a moment to start up before marking it running.
+	time.Sleep(2 * time.Second)
+	if isCurrentSyncthing(cmd, generation) {
+		mStatus.SetTitle("● Running")
+	}
+}
+
+func startSyncthing() (*exec.Cmd, uint64, error) {
 	// Look for syncthing.exe next to our own exe first, then in PATH
-	exePath, _ := os.Executable()
-	exeDir := filepath.Dir(exePath)
+	exeDir, err := executableDir()
+	if err != nil {
+		return nil, 0, err
+	}
 	candidates := []string{
 		filepath.Join(exeDir, "syncthing.exe"),
 		"syncthing.exe",
@@ -151,33 +187,84 @@ func startSyncthing() error {
 	}
 
 	if stPath == "" {
-		return exec.ErrNotFound
+		return nil, 0, exec.ErrNotFound
 	}
 
 	log.Printf("Starting syncthing: %s", stPath)
-	syncthingCmd = exec.Command(stPath, "--no-browser", "--no-restart", "--no-upgrade")
-	syncthingCmd.Dir = exeDir
-	syncthingCmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd := exec.Command(stPath, "--no-browser", "--no-restart", "--no-upgrade")
+	cmd.Dir = exeDir
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 
 	// Redirect syncthing output to our log
 	if logFile != nil {
-		syncthingCmd.Stdout = logFile
-		syncthingCmd.Stderr = logFile
+		cmd.Stdout = logFile
+		cmd.Stderr = logFile
 	}
 
-	return syncthingCmd.Start()
+	if err := cmd.Start(); err != nil {
+		return nil, 0, err
+	}
+
+	syncthingMu.Lock()
+	if applicationExiting {
+		syncthingMu.Unlock()
+		if err := cmd.Process.Kill(); err != nil {
+			log.Printf("Could not stop Syncthing while exiting: %v", err)
+		} else {
+			cmd.Wait()
+		}
+		return nil, 0, errApplicationExiting
+	}
+	syncthingGeneration++
+	generation := syncthingGeneration
+	syncthingCmd = cmd
+	syncthingMu.Unlock()
+
+	return cmd, generation, nil
 }
 
 func stopSyncthing() {
-	if syncthingCmd != nil && syncthingCmd.Process != nil {
+	syncthingMu.Lock()
+	cmd := syncthingCmd
+	syncthingCmd = nil
+	syncthingGeneration++
+	syncthingMu.Unlock()
+
+	if cmd != nil && cmd.Process != nil {
 		log.Println("Stopping syncthing")
-		syncthingCmd.Process.Kill()
-		syncthingCmd = nil
+		if err := cmd.Process.Kill(); err != nil {
+			log.Printf("Could not stop syncthing: %v", err)
+		}
 	}
 }
 
+func watchSyncthing(cmd *exec.Cmd, generation uint64, mStatus *systray.MenuItem) {
+	if err := cmd.Wait(); err != nil {
+		log.Printf("Syncthing exited: %v", err)
+	}
+
+	syncthingMu.Lock()
+	isCurrent := syncthingCmd == cmd && syncthingGeneration == generation
+	if isCurrent {
+		syncthingCmd = nil
+	}
+	syncthingMu.Unlock()
+
+	if isCurrent {
+		mStatus.SetTitle("✖ Stopped")
+	}
+}
+
+func isCurrentSyncthing(cmd *exec.Cmd, generation uint64) bool {
+	syncthingMu.Lock()
+	defer syncthingMu.Unlock()
+	return syncthingCmd == cmd && syncthingGeneration == generation
+}
+
 func openBrowser(url string) {
-	exec.Command("explorer", url).Start()
+	if err := exec.Command("explorer", url).Start(); err != nil {
+		log.Printf("Could not open browser: %v", err)
+	}
 }
 
 // makeIcon generates a simple teal square PNG icon at runtime.
@@ -192,8 +279,12 @@ func makeIcon() []byte {
 		for x := 0; x < size; x++ {
 			// Simple rounded-rect-ish look: corners are transparent
 			cx, cy := x-size/2, y-size/2
-			if cx < 0 { cx = -cx }
-			if cy < 0 { cy = -cy }
+			if cx < 0 {
+				cx = -cx
+			}
+			if cy < 0 {
+				cy = -cy
+			}
 			if cx+cy > size/2+4 {
 				continue // transparent corner
 			}

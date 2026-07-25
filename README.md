@@ -1,83 +1,53 @@
 # SyncTray
 
-A personal Windows system tray wrapper for [Syncthing](https://syncthing.net/) that I built for my own use. It starts Syncthing silently at login and lives quietly in the system tray.
+SyncTray is a lightweight Windows system-tray companion for [Syncthing](https://syncthing.net/). It starts Syncthing silently at logon and keeps the controls you need one click away. It supports both Syncthing v1 and the v2 `serve` command layout.
 
 ## Install
 
-1. Download `synctray-setup.exe` from the [latest release](https://github.com/sujaybokil/SyncTray/releases/latest)
-2. Run `synctray-setup.exe` — no admin rights needed
-3. Place `syncthing.exe` from [syncthing.net](https://syncthing.net/downloads/) into `%LOCALAPPDATA%\SyncTray\`
-4. Either log off and back on, or launch immediately from the Start menu
+1. Download `synctray-setup.exe` from the [latest release](https://github.com/sujaybokil/SyncTray/releases/latest).
+2. Run the installer—no administrator rights are needed.
+3. SyncTray finds `syncthing.exe` on your `PATH` whenever it starts. When that path is a Scoop shim, it launches the shim's declared executable directly while retaining its configured arguments. If Syncthing is not on `PATH`, set a full path manually as described below.
+4. Search for **SyncTray** in the Windows Start menu to launch it, or sign out and back in to use the scheduled logon start.
 
-> SyncTray installs to `%LOCALAPPDATA%\SyncTray` and registers a logon task with a 30 second delay automatically.
+The installer places SyncTray in `%LOCALAPPDATA%\SyncTray\` and creates a logon task with a 30-second delay. To upgrade, install a newer release over the existing installation. To remove it, use **Add or Remove Programs**.
 
-## Uninstall
+## Tray controls
 
-Use **Add or Remove Programs**, search for SyncTray and uninstall. This removes all files and the logon task.
-
----
-
-## Tray menu
+The tray icon always uses the SyncTray sync mark: blue while running, amber while starting or restarting, gray when stopped, and red when SyncTray cannot start Syncthing. The tray menu provides:
 
 | Item | Action |
 | --- | --- |
-| ● Running | Status indicator |
-| Open Web UI | Opens the Syncthing web UI in your browser |
-| Restart Syncthing | Kills and restarts the process |
-| Quit | Stops Syncthing and exits |
+| Open Syncthing | Opens the Syncthing web interface. |
+| Open Sync Folder | Opens the optional folder configured below. |
+| Open Log | Opens `%LOCALAPPDATA%\SyncTray\synctray.log`. |
+| Edit Settings | Opens `synctray.conf` in Notepad. Restart SyncTray after saving changes. |
+| Start / Restart Syncthing | Starts Syncthing when stopped, or restarts it when running; disabled while an action is in progress. |
+| Kill Syncthing | Stops all running `syncthing.exe` processes. |
+| Quit SyncTray | Stops Syncthing and exits the tray application. |
 
-Output is logged to `%LOCALAPPDATA%\SyncTray\synctray.log`.
+SyncTray displays Windows notifications only when Syncthing cannot start or stops unexpectedly.
+If Syncthing is already running outside SyncTray, the status reads **Already running** and the web interface remains available.
 
----
+## Settings
 
-## Custom Web UI URL (optional)
+Use **Edit Settings** in the tray menu, or create `%LOCALAPPDATA%\SyncTray\synctray.conf`. Settings use one `key=value` entry per line:
 
-By default SyncTray opens `http://127.0.0.1:8384` which is Syncthing's default address. You only need to change this if you've configured Syncthing to run on a different port or address.
-
-**1. Open the install folder**
-
-Paste this into File Explorer's address bar and press Enter:
-```
-%LOCALAPPDATA%\SyncTray\
-```
-
-**2. Create a file named `synctray.conf`**
-
-Make sure it is saved as `synctray.conf` and not `synctray.conf.txt` — in File Explorer go to View → Show → File name extensions to verify.
-
-**3. Add your URL**
-
-Open the file in Notepad and add a single line:
-```
+```ini
+# Optional: change the Syncthing web UI address.
 webui=http://127.0.0.1:8384
+
+# Optional: show Open Sync Folder in the tray menu.
+folder=C:\Users\YourName\Sync
+
+# Optional override. Leave this empty to resolve syncthing.exe from PATH on
+# every start (recommended); set a full path only when it is not on PATH.
+syncthing=C:\Path\To\syncthing.exe
 ```
 
-**4. Restart SyncTray**
+If neither `PATH` nor this setting resolves Syncthing, SyncTray shows **Syncthing not found** and prompts you to update it using **Edit Settings**.
 
-Right-click the tray icon → **Quit**, then launch `synctray.exe` again. The new URL will be used when you click **Open Web UI**.
+## Releases and development
 
----
+Install SyncTray from [GitHub Releases](https://github.com/sujaybokil/SyncTray/releases/latest); releases contain the ready-to-run installer. Maintainers create a release by pushing a version tag such as `v1.0.0`.
 
-## Build from source
-
-### Requirements
-
-- [Go 1.21+](https://go.dev/dl/) — `scoop install go`
-- [Inno Setup 6](https://jrsoftware.org/isdl.php) — `scoop install innosetup` (only needed to build the installer)
-
-### Build the exe
-
-```bat
-go mod tidy
-go build -ldflags="-H windowsgui -s -w" -o synctray.exe .
-```
-
-Or just run `build.bat`.
-
-### Build the installer
-
-```bat
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.0 installer.iss
-```
-
-Outputs `Output\synctray-setup.exe`.
+For local builds, installer packaging, and release workflow details, see [BUILDING.md](BUILDING.md).

@@ -10,10 +10,11 @@ separate package.
 
 Windows packaging lives at the repository root: `build.bat` builds the binary,
 `installer.iss` defines the Inno Setup installer, and `setup-task.bat` creates
-the optional logon task. `icon.ico` is the shipped tray icon. Release automation
-is in `.github/workflows/release.yml`; tag pushes matching `v*` build and publish
-the installer. Generated files such as `synctray.exe`, `Output/`, and logs are
-ignored and must not be committed.
+the optional logon task. `icon.ico` is the installer icon. User installation and
+configuration are documented in `README.md`; local build and release details are
+in `BUILDING.md`. Release automation is in `.github/workflows/release.yml`; tag
+pushes matching `v*` build and publish the installer. Generated files such as
+`synctray.exe`, `Output/`, and logs are ignored and must not be committed.
 
 ## Build, Test, and Development Commands
 

@@ -20,7 +20,7 @@ SyncTray is maintained as a personal-use project, but anyone is welcome to use, 
 3. SyncTray finds `syncthing.exe` on your `PATH` whenever it starts. When that path is a Scoop shim, it launches the shim's declared executable directly while retaining its configured arguments. If Syncthing is not on `PATH`, set a full path manually as described below.
 4. Search for **SyncTray** in the Windows Start menu to launch it, or sign out and back in to use the scheduled logon start.
 
-The installer places SyncTray in `%LOCALAPPDATA%\SyncTray\` and creates a logon task with a 30-second delay. To upgrade, install a newer release over the existing installation: it recognizes the same SyncTray installation, reuses its location, closes the running tray process before replacing files, and preserves `synctray.conf` and `synctray.log`. If Windows cannot close SyncTray because of another user's process or a system-level lock, close that instance (or restart Windows) and run the installer again. To remove it, use **Add or Remove Programs**.
+The installer displays the MIT license agreement, places SyncTray in `%LOCALAPPDATA%\SyncTray\`, and creates a logon task with a 30-second delay. To upgrade, install a newer release over the existing installation: it recognizes the same SyncTray installation, reuses its location, closes the running tray process before replacing files, and preserves `synctray.conf` and `synctray.log`. If Windows cannot close SyncTray because of another user's process or a system-level lock, close that instance (or restart Windows) and run the installer again. To remove it, use **Add or Remove Programs**.
 
 ## Tray controls
 
@@ -63,6 +63,6 @@ SyncTray does not bundle Syncthing: install it separately and make `syncthing.ex
 
 ## Releases and development
 
-Install SyncTray from [GitHub Releases](https://github.com/sujaybokil/SyncTray/releases/latest); releases contain the ready-to-run installer. The current 1.0 release is **v1.0.4**; its complete feature list is in [CHANGELOG.md](CHANGELOG.md). Maintainers create a release by pushing a version tag such as `v1.0.4`.
+Install SyncTray from [GitHub Releases](https://github.com/sujaybokil/SyncTray/releases/latest); releases contain the ready-to-run installer. The current 1.0 release is **v1.0.5**; its complete feature list is in [CHANGELOG.md](CHANGELOG.md). Maintainers create a release by pushing a version tag such as `v1.0.5`.
 
 For local builds, installer packaging, and release workflow details, see [BUILDING.md](BUILDING.md).

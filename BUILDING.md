@@ -32,7 +32,7 @@ go vet ./...
 With `synctray.exe` present, run:
 
 ```bat
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.4 installer.iss
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.5 installer.iss
 ```
 
 The installer is written to `Output\synctray-setup.exe`.
@@ -42,8 +42,8 @@ The installer is written to `Output\synctray-setup.exe`.
 Push an annotated or lightweight version tag matching `v*`, for example:
 
 ```bat
-git tag v1.0.4
-git push origin v1.0.4
+git tag v1.0.5
+git push origin v1.0.5
 ```
 
 The GitHub Actions workflow tests and vets the code, builds the Windows executable and installer, then publishes `synctray-setup.exe` and the version's changelog entry to the corresponding GitHub Release.

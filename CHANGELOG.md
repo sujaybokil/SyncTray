@@ -11,7 +11,7 @@ All notable changes to SyncTray are documented here.
 - Supports Syncthing v1 and v2 launch commands.
 - Provides tray actions for the web UI, optional sync folder, log, settings, start/restart, stop, and quit.
 - Shows running, starting, stopped, and failed states with distinct icons and Windows notifications for failures and unexpected exits.
-- Installs per user without administrator rights and preserves user settings during upgrades.
+- Installs per user without administrator rights, safely replaces a running prior installation, and preserves user settings during upgrades.
 - Adds documented build, test, packaging, dependency, and release procedures.
 
 ### Quality

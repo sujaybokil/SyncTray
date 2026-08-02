@@ -14,9 +14,16 @@ VersionInfoVersion={#AppVersion}
 
 ; Install to %LOCALAPPDATA%\SyncTray — no admin rights needed
 DefaultDirName={localappdata}\SyncTray
+UsePreviousAppDir=yes
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
+
+; Close a running previous version before [Files] replaces it. Inno Setup uses
+; Windows Restart Manager and will stop on a lock it cannot safely close.
+CloseApplications=yes
+CloseApplicationsFilter={#AppExe}
+RestartApplications=no
 
 OutputDir=Output
 OutputBaseFilename=synctray-setup
@@ -34,11 +41,7 @@ Source: "icon.ico";  DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntex
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"; WorkingDir: "{app}"; IconFilename: "{app}\icon.ico"
 
 [Run]
-; Kill any running instance before finishing (in case of upgrade)
-Filename: "taskkill.exe"; Parameters: "/f /im {#AppExe}"; \
-  Flags: runhidden; Check: IsAppRunning
-
-; Offer to launch now
+; Offer to launch the updated application now.
 Filename: "{app}\{#AppExe}"; \
   Description: "Start {#AppName} now"; \
   Flags: postinstall nowait skipifsilent
@@ -56,15 +59,6 @@ Filename: "taskkill.exe"; Parameters: "/f /im {#AppExe}"; \
 Type: files; Name: "{userstartup}\{#AppName}.lnk"
 
 [Code]
-function IsAppRunning(): Boolean;
-var
-  ResultCode: Integer;
-begin
-  Exec('tasklist.exe', '/fi "IMAGENAME eq {#AppExe}" /fo csv /nh',
-    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Result := (ResultCode = 0);
-end;
-
 procedure CreateSyncTrayConfig();
 var
   ConfigPath: String;

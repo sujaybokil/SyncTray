@@ -4,7 +4,7 @@ go mod tidy
 if errorlevel 1 goto :fail
 
 echo [2/2] Building...
-go build -ldflags="-H windowsgui -s -w" -o synctray.exe .
+go build -trimpath -ldflags="-H windowsgui -s -w" -o synctray.exe .
 if errorlevel 1 goto :fail
 
 echo Done! synctray.exe created.

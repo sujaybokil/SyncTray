@@ -64,12 +64,30 @@ func TestParseConfigAllowsEmptySyncthingPath(t *testing.T) {
 	}
 }
 
+func TestParseConfigIgnoresCommentsAndMalformedLines(t *testing.T) {
+	settings := parseConfig("# webui=http://wrong\n; folder=C:\\wrong\nthis is not a setting\r\n webui = http://localhost:9999 \r\n")
+	if settings.webUIURL != "http://localhost:9999" {
+		t.Errorf("webUIURL = %q, want configured URL", settings.webUIURL)
+	}
+	if settings.syncFolder != "" {
+		t.Errorf("syncFolder = %q, want empty", settings.syncFolder)
+	}
+}
+
 func TestSyncthingArgsForVersion(t *testing.T) {
 	if got, want := syncthingArgsForVersion("syncthing v1.29.7"), []string{"--no-browser", "--no-restart", "--no-upgrade"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("v1 args = %q, want %q", got, want)
 	}
 	if got, want := syncthingArgsForVersion("syncthing v2.1.1"), []string{"serve", "--no-browser", "--no-restart", "--no-upgrade"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("v2 args = %q, want %q", got, want)
+	}
+}
+
+func TestSyncthingArgsForVersionHandlesUnexpectedOutput(t *testing.T) {
+	got := syncthingArgsForVersion("Syncthing unknown build")
+	want := []string{"serve", "--no-browser", "--no-restart", "--no-upgrade"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("unexpected-version args = %q, want %q", got, want)
 	}
 }
 
@@ -114,9 +132,26 @@ func TestWithConfigValue(t *testing.T) {
 	}
 }
 
+func TestWithConfigValueAppendsAndHandlesEmptyConfig(t *testing.T) {
+	if got, want := withConfigValue("", "syncthing", "C:\\Tools\\syncthing.exe"), "syncthing=C:\\Tools\\syncthing.exe\n"; got != want {
+		t.Errorf("empty config = %q, want %q", got, want)
+	}
+	if got, want := withConfigValue("webui=http://localhost:8384\n", "folder", "C:\\Sync"), "webui=http://localhost:8384\nfolder=C:\\Sync\n"; got != want {
+		t.Errorf("appended config = %q, want %q", got, want)
+	}
+}
+
 func TestSplitWindowsArgs(t *testing.T) {
 	got := splitWindowsArgs(`--home "C:\Users\Me\Scoop Config" --no-upgrade`)
 	want := []string{"--home", `C:\Users\Me\Scoop Config`, "--no-upgrade"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("splitWindowsArgs() = %#v, want %#v", got, want)
+	}
+}
+
+func TestSplitWindowsArgsHandlesEmptyAndEscapedQuotedArguments(t *testing.T) {
+	got := splitWindowsArgs(`--label "" "C:\Path With Spaces\\" "say\"hello"`)
+	want := []string{"--label", "", `C:\Path With Spaces\`, `say"hello`}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("splitWindowsArgs() = %#v, want %#v", got, want)
 	}

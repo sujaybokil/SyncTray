@@ -124,6 +124,9 @@ func parseConfig(data string) config {
 	settings := config{webUIURL: defaultWebUI}
 	for _, line := range strings.Split(data, "\n") {
 		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
+			continue
+		}
 		key, val, found := strings.Cut(line, "=")
 		if !found {
 			continue
@@ -407,20 +410,44 @@ func splitWindowsArgs(value string) []string {
 	var args []string
 	var current strings.Builder
 	inQuotes := false
-	for _, runeValue := range value {
-		switch {
-		case runeValue == '"':
-			inQuotes = !inQuotes
-		case (runeValue == ' ' || runeValue == '\t') && !inQuotes:
-			if current.Len() > 0 {
+	started := false
+	for index := 0; index < len(value); {
+		if (value[index] == ' ' || value[index] == '\t') && !inQuotes {
+			if started {
 				args = append(args, current.String())
 				current.Reset()
+				started = false
 			}
-		default:
-			current.WriteRune(runeValue)
+			index++
+			continue
 		}
+
+		backslashes := 0
+		for index < len(value) && value[index] == '\\' {
+			backslashes++
+			index++
+		}
+		if index < len(value) && value[index] == '"' {
+			current.WriteString(strings.Repeat("\\", backslashes/2))
+			if backslashes%2 == 0 {
+				inQuotes = !inQuotes
+			} else {
+				current.WriteByte('"')
+			}
+			started = true
+			index++
+			continue
+		}
+		if backslashes > 0 {
+			current.WriteString(strings.Repeat("\\", backslashes))
+			started = true
+			continue
+		}
+		current.WriteByte(value[index])
+		started = true
+		index++
 	}
-	if current.Len() > 0 {
+	if started {
 		args = append(args, current.String())
 	}
 	return args

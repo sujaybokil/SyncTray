@@ -7,6 +7,7 @@ This document is for contributors and maintainers. Most users should install the
 - Windows
 - Go 1.21 or newer — for example, `scoop install go`
 - Inno Setup 6 — only for installer builds; for example, `scoop install innosetup`
+- Syncthing — only to exercise the installed application; it is not required to compile or test SyncTray
 
 ## Build the application
 
@@ -14,7 +15,7 @@ From the repository root:
 
 ```bat
 go mod tidy
-go build -ldflags="-H windowsgui -s -w" -o synctray.exe .
+go build -trimpath -ldflags="-H windowsgui -s -w" -o synctray.exe .
 ```
 
 Or run `build.bat` to perform the same dependency refresh and build interactively.
@@ -31,7 +32,7 @@ go vet ./...
 With `synctray.exe` present, run:
 
 ```bat
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.0 installer.iss
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.4 installer.iss
 ```
 
 The installer is written to `Output\synctray-setup.exe`.
@@ -41,8 +42,10 @@ The installer is written to `Output\synctray-setup.exe`.
 Push an annotated or lightweight version tag matching `v*`, for example:
 
 ```bat
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.4
+git push origin v1.0.4
 ```
 
-The GitHub Actions workflow builds the Windows executable and installer, then publishes `synctray-setup.exe` to the corresponding GitHub Release.
+The GitHub Actions workflow tests and vets the code, builds the Windows executable and installer, then publishes `synctray-setup.exe` and the version's changelog entry to the corresponding GitHub Release.
+
+See [DEPENDENCIES.md](DEPENDENCIES.md) before updating or adding third-party code.

@@ -2,6 +2,17 @@
 
 SyncTray is a lightweight Windows system-tray companion for [Syncthing](https://syncthing.net/). It starts Syncthing silently at logon and keeps the controls you need one click away. It supports both Syncthing v1 and the v2 `serve` command layout.
 
+SyncTray is maintained as a personal-use project, but anyone is welcome to use, copy, modify, and distribute it under the [MIT License](LICENSE). It is provided as-is, without a support commitment or warranty.
+
+## SyncTray 1.0 features
+
+- Per-user, no-admin Windows installer with automatic logon startup and a Startup-folder fallback.
+- Silent Syncthing launch with support for Syncthing v1 and v2.
+- `PATH` discovery, Scoop-shim support, and an optional explicit Syncthing path.
+- Tray controls for the web UI, optional sync folder, log, settings, start/restart, stop, and quit.
+- Clear running, starting, stopped, and failed tray states, plus notifications for launch failures and unexpected exits.
+- Upgrade-safe user settings and a local operational log.
+
 ## Install
 
 1. Download `synctray-setup.exe` from the [latest release](https://github.com/sujaybokil/SyncTray/releases/latest).
@@ -46,8 +57,12 @@ syncthing=C:\Path\To\syncthing.exe
 
 If neither `PATH` nor this setting resolves Syncthing, SyncTray shows **Syncthing not found** and prompts you to update it using **Edit Settings**.
 
+## Dependencies
+
+SyncTray does not bundle Syncthing: install it separately and make `syncthing.exe` available on `PATH`, or configure its full path. Runtime and build dependencies, including their pinned versions and licenses, are listed in [DEPENDENCIES.md](DEPENDENCIES.md).
+
 ## Releases and development
 
-Install SyncTray from [GitHub Releases](https://github.com/sujaybokil/SyncTray/releases/latest); releases contain the ready-to-run installer. Maintainers create a release by pushing a version tag such as `v1.0.0`.
+Install SyncTray from [GitHub Releases](https://github.com/sujaybokil/SyncTray/releases/latest); releases contain the ready-to-run installer. The current 1.0 release is **v1.0.4**; its complete feature list is in [CHANGELOG.md](CHANGELOG.md). Maintainers create a release by pushing a version tag such as `v1.0.4`.
 
 For local builds, installer packaging, and release workflow details, see [BUILDING.md](BUILDING.md).

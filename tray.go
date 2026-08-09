@@ -44,7 +44,6 @@ func onReady() {
 	mApp := systray.AddMenuItem("SyncTray", "Syncthing tray companion")
 	mApp.Disable()
 	mStatus := systray.AddMenuItem("Status: Starting...", "Current Syncthing status")
-	mStatus.Disable()
 	systray.AddSeparator()
 	mOpenUI := systray.AddMenuItem("Open Syncthing", "Open the Syncthing web interface")
 	var mOpenFolder *systray.MenuItem
@@ -68,6 +67,8 @@ func onReady() {
 		select {
 		case update := <-statusUpdates:
 			applyStatus(mStatus, update)
+		case <-mStatus.ClickedCh:
+			// Enabled so Windows preserves the status dot's color; intentionally inert.
 		case <-mOpenUI.ClickedCh:
 			openBrowser(webUIURL)
 		case <-menuClick(mOpenFolder):
@@ -122,6 +123,7 @@ func setStatus(state trayStatus, status, tooltip string) {
 }
 
 func applyStatus(mStatus *systray.MenuItem, update trayStatusUpdate) {
+	mStatus.SetIcon(statusDotIcon(update.state))
 	mStatus.SetTitle("Status: " + update.status)
 	systray.SetTooltip("SyncTray — " + update.tooltip)
 	systray.SetIcon(makeIcon(update.state))

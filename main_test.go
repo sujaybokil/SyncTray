@@ -110,6 +110,19 @@ func TestStatusIconsAreDistinct(t *testing.T) {
 	}
 }
 
+func TestStatusDotIconsAreDistinctICO(t *testing.T) {
+	running, failed := statusDotIcon(statusRunning), statusDotIcon(statusFailed)
+	if len(running) < 22 || len(failed) < 22 {
+		t.Fatal("status dot icons must include an ICO header")
+	}
+	if running[2] != 1 || running[4] != 1 {
+		t.Errorf("status dot header = %v, want ICO with one image", running[:6])
+	}
+	if reflect.DeepEqual(running, failed) {
+		t.Fatal("running and failed status dots must differ")
+	}
+}
+
 func TestIsWebUIAvailable(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)

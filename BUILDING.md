@@ -74,7 +74,7 @@ go vet ./...
 With `synctray.exe` present, run:
 
 ```bat
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.6 installer.iss
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.7 installer.iss
 ```
 
 The installer is written to `Output\synctray-setup.exe`.
@@ -85,8 +85,8 @@ Add a matching `## [MAJOR.MINOR.PATCH]` section to `CHANGELOG.md`, then push an
 annotated or lightweight version tag matching `vMAJOR.MINOR.PATCH`, for example:
 
 ```bat
-git tag v1.0.6
-git push origin v1.0.6
+git tag v1.0.7
+git push origin v1.0.7
 ```
 
 Pull requests and pushes to `master` run tests (including the race detector), vet, build, package, and retain the installer as a CI artifact. A release tag must use `vMAJOR.MINOR.PATCH`; the release workflow repeats those checks, publishes the installer with a SHA-256 checksum, and uses that version's changelog section as the GitHub Release notes. Re-running a release workflow updates its assets and notes safely.

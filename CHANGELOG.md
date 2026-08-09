@@ -2,6 +2,15 @@
 
 All notable changes to SyncTray are documented here.
 
+## [1.0.7] - 2026-08-09
+
+### Status indicator
+
+- Adds a native Windows status marker in the tray menu, with a compact square
+  that visually blends with the system menu background.
+- Keeps the marker and tray icon color synchronized for running, starting,
+  stopped, and failed states.
+
 ## [1.0.6] - 2026-08-09
 
 ### Maintainability and diagnostics

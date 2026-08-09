@@ -31,7 +31,7 @@ The installer displays the MIT license agreement, places SyncTray in `%LOCALAPPD
 
 ## Tray controls
 
-The tray icon always uses the SyncTray sync mark: blue while running, amber while starting or restarting, gray when stopped, and red when SyncTray cannot start Syncthing. The tray menu provides:
+The tray icon always uses the SyncTray sync mark: blue while running, amber while starting or restarting, gray when stopped, and red when SyncTray cannot start Syncthing. The status menu line shows a matching colored dot. The tray menu provides:
 
 | Item | Action |
 | --- | --- |
@@ -70,6 +70,6 @@ SyncTray does not bundle Syncthing: install it separately and make `syncthing.ex
 
 ## Releases and development
 
-Install SyncTray from [GitHub Releases](https://github.com/sujaybokil/SyncTray/releases/latest); releases contain the ready-to-run installer and a SHA-256 checksum. The current release is **v1.0.6**; its complete history is in [CHANGELOG.md](CHANGELOG.md). Maintainers create a release by pushing a version tag such as `v1.0.6`.
+Install SyncTray from [GitHub Releases](https://github.com/sujaybokil/SyncTray/releases/latest); releases contain the ready-to-run installer and a SHA-256 checksum. The current release is **v1.0.7**; its complete history is in [CHANGELOG.md](CHANGELOG.md). Maintainers create a release by pushing a version tag such as `v1.0.7`.
 
 For local builds, installer packaging, and release workflow details, see [BUILDING.md](BUILDING.md).

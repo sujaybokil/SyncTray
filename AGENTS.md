@@ -2,11 +2,13 @@
 
 ## Project Structure & Module Organization
 
-SyncTray is a small Go application for Windows. `main.go` contains the tray UI,
-Syncthing process management, configuration loading, and icon fallback logic.
-`go.mod` and `go.sum` define the Go module and dependencies. Keep application
-code in package `main` unless a new concern is substantial enough to warrant a
-separate package.
+SyncTray is a small Go application for Windows. The root package contains the
+thin entry point (`main.go`), tray UI (`tray.go`), Syncthing lifecycle
+management (`syncthing.go`), configuration integration (`config.go`), and
+embedded assets (`assets.go`). Reusable, non-UI helpers belong in scoped
+`internal/` packages: `internal/config` owns settings-file parsing and
+`internal/windowscmd` owns Windows command-line parsing. `go.mod` and `go.sum`
+define the module and dependencies.
 
 Windows packaging lives at the repository root: `build.bat` builds the binary,
 `installer.iss` defines the Inno Setup installer, and `setup-task.bat` creates
@@ -24,12 +26,20 @@ Use Go 1.21 or newer on Windows.
 go mod tidy
 go build -ldflags="-H windowsgui -s -w" -o synctray.exe .
 build.bat
+debug.bat
+./tools/smoke-test.ps1
+go test -race ./...
 go vet ./...
 ```
 
 The first two commands refresh dependencies and build the GUI executable;
-`build.bat` performs the same build interactively. Run `go vet ./...` before
-submitting Go changes. To package a release, install Inno Setup 6 and run
+`build.bat` performs the same build interactively. `debug.bat` creates a
+console-enabled, symbol-rich executable and supports `debug.bat check` for a
+non-destructive environment report. `tools/smoke-test.ps1` runs the automated
+local smoke checks; add `-RunDiagnostic` when Syncthing discovery and Web UI
+reachability should also be reported. The default tests must remain independent
+of a locally installed Syncthing instance and user-specific paths. Run the race tests and `go vet ./...`
+before submitting Go changes. To package a release, install Inno Setup 6 and run
 `ISCC.exe /DAppVersion=1.0.0 installer.iss`; the installer appears in `Output/`.
 
 ## Coding Style & Naming Conventions

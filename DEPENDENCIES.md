@@ -1,6 +1,9 @@
 # Dependencies
 
-SyncTray is deliberately small. The application has two direct Go dependencies, both pinned in `go.mod` and checksummed in `go.sum`.
+SyncTray is deliberately small: a personal-use tool published for anyone to
+install under the MIT License, not a managed service or bundled Syncthing
+distribution. The application has two direct Go dependencies, both pinned in
+`go.mod` and checksummed in `go.sum`.
 
 | Dependency | Version | Purpose | License |
 | --- | --- | --- | --- |
@@ -15,6 +18,6 @@ Their transitive Go modules are recorded as indirect requirements in `go.mod`; u
 | --- | --- | --- |
 | [Syncthing](https://syncthing.net/) | Running SyncTray's managed synchronization process | Installed separately by the user; not bundled or pinned by SyncTray |
 | Go 1.21+ | Building and testing | Go toolchain |
-| Inno Setup 6 | Building the Windows installer | Installer build only |
+| Inno Setup 6.7.1 | Building the Windows installer | CI installs a pinned Chocolatey package; contributors may use a compatible Inno Setup 6 installation |
 
 GitHub Dependabot checks Go modules and GitHub Actions monthly. Review updates for compatibility, licensing, and Windows behavior before merging.

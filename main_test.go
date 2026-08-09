@@ -119,8 +119,9 @@ func TestIsWebUIAvailable(t *testing.T) {
 	if !isWebUIAvailable(server.URL) {
 		t.Error("expected a responding web UI to be available")
 	}
-	if isWebUIAvailable("http://127.0.0.1:1") {
-		t.Error("expected an unreachable web UI to be unavailable")
+	server.Close()
+	if isWebUIAvailable(server.URL) {
+		t.Error("expected a closed test server to be unavailable")
 	}
 }
 

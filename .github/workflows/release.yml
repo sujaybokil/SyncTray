@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: windows-latest
@@ -13,22 +17,27 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          go-version: '1.21'
+          go-version-file: go.mod
 
-      - name: Get version from tag
-        shell: bash
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+      - name: Validate and read version tag
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          if ($tag -notmatch '^v(?<version>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)$') {
+            throw "Release tags must use vMAJOR.MINOR.PATCH; received $tag"
+          }
+          "VERSION=$($Matches.version).$($Matches.minor).$($Matches.patch)" >> $env:GITHUB_ENV
 
       - name: Download dependencies
         run: go mod download
 
       - name: Test
-        run: go test ./...
+        run: go test -race ./...
 
       - name: Vet
         run: go vet ./...
@@ -42,8 +51,8 @@ jobs:
       - name: Build synctray.exe
         run: go build -trimpath -ldflags="-H windowsgui -s -w" -o synctray.exe .
 
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress -y
+      - name: Install pinned Inno Setup
+        run: choco install innosetup --version=6.7.1 --no-progress -y
 
       - name: Build installer
         run: |
@@ -52,10 +61,51 @@ jobs:
             installer.iss
         shell: pwsh
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+      - name: Generate installer checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash Output/synctray-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  synctray-setup.exe" | Set-Content -NoNewline -Encoding ascii Output/synctray-setup.exe.sha256
+
+      - name: Extract release notes
+        shell: pwsh
+        run: |
+          $lines = Get-Content CHANGELOG.md
+          $heading = "## [$env:VERSION]"
+          $start = [Array]::FindIndex([string[]]$lines, [System.Predicate[string]]{ param($line) $line.StartsWith($heading) })
+          if ($start -lt 0) {
+            throw "No changelog section found for $env:VERSION"
+          }
+          $end = $start + 1
+          while ($end -lt $lines.Count -and -not $lines[$end].StartsWith('## [')) {
+            $end++
+          }
+          $lines[($start + 1)..($end - 1)] | Set-Content -Encoding utf8 release-notes.md
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
-          name: SyncTray v${{ env.VERSION }}
-          files: Output/synctray-setup.exe
-          body_path: CHANGELOG.md
-          generate_release_notes: false
+          name: synctray-setup-${{ env.VERSION }}
+          path: |
+            Output/synctray-setup.exe
+            Output/synctray-setup.exe.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v$env:VERSION"
+          $assets = @('Output/synctray-setup.exe', 'Output/synctray-setup.exe.sha256')
+          gh release view $tag --json id 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $assets --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Could not upload release assets for $tag" }
+            gh release edit $tag --title "SyncTray v$env:VERSION" --notes-file release-notes.md
+            if ($LASTEXITCODE -ne 0) { throw "Could not update GitHub Release $tag" }
+          } else {
+            gh release create $tag $assets --title "SyncTray v$env:VERSION" --notes-file release-notes.md
+            if ($LASTEXITCODE -ne 0) { throw "Could not create GitHub Release $tag" }
+          }
